@@ -23,8 +23,6 @@ resource "google_storage_bucket" "my_bucket" {
 
   force_destroy = true
 }
-
-# Create GKE Cluster
 resource "google_container_cluster" "primary" {
   name               = "my-gke-cluster-sm1"
   location           = "us-central1"
@@ -39,5 +37,4 @@ resource "google_container_cluster" "primary" {
 
   remove_default_node_pool = false
   networking_mode          = "VPC_NATIVE"
-  enable_autopilot         = false 
 }
