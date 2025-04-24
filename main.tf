@@ -39,5 +39,5 @@ resource "google_container_cluster" "primary" {
 
   remove_default_node_pool = false
   networking_mode          = "VPC_NATIVE"
-  enable_autopilot         = false
+  enable_autopilot         = false 
 }
