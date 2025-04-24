@@ -1,37 +1,43 @@
-terraform {
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.12.0"
-    }
-  }
-
-  required_version = ">= 1.3.0"
+provider "google" {
+  project = "teak-surge-455704-t3"
+  region  = "us-central1"
 }
 
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
+provider "kubernetes" {
+  host                   = google_container_cluster.primary.endpoint
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth[0].cluster_ca_certificate)
 }
 
-resource "kubernetes_namespace" "delegate_ns" {
-  metadata {
-    name = "harness-delegate-ng"
+data "google_client_config" "default" {}
+
+# Create GCS bucket
+resource "google_storage_bucket" "my_bucket" {
+  name          = "my-general-bucket-sm1" # Must be globally unique
+  location      = "US"
+  storage_class = "STANDARD"
+
+  versioning {
+    enabled = true
   }
+
+  force_destroy = true
 }
 
-module "delegate" {
-  source  = "harness/harness-delegate/kubernetes"
-  version = "0.1.8"
+# Create GKE Cluster
+resource "google_container_cluster" "primary" {
+  name               = "my-gke-cluster-sm1"
+  location           = "us-central1"
+  initial_node_count = 1
 
-  account_id        = var.harness_account_id
-  delegate_token    = var.delegate_token
-  delegate_name     = "terraform-delegate"
-  deploy_mode       = "KUBERNETES"
-  namespace         = kubernetes_namespace.delegate_ns.metadata[0].name
-  manager_endpoint  = "https://app.harness.io"
-  delegate_image    = "us-docker.pkg.dev/gar-prod-setup/harness-public/harness/delegate:25.04.85602"
-  replicas          = 1
-  upgrader_enabled  = true
+  node_config {
+    machine_type = "e2-medium"
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform",
+    ]
+  }
+
+  remove_default_node_pool = false
+  networking_mode          = "VPC_NATIVE"
+  enable_autopilot         = false
 }
